@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Submission App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .response {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e7f7e7;
+            border: 1px solid #d4f7d4;
+            border-radius: 4px;
+            color: #4CAF50;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Form Submission App</h1>
+    
+    <div class="form-group">
+        <label for="form_url">Form URL:</label>
+        <input type="text" id="form_url" placeholder="Enter form URL">
+    </div>
+    
+    <div class="form-group">
+        <label for="runs">Number of Runs:</label>
+        <input type="number" id="runs" value="1" min="1">
+    </div>
+    
+    <div class="form-group">
+        <label for="break_time">Break Time (seconds):</label>
+        <input type="number" id="break_time" value="1" min="1">
+    </div>
+
+    <div id="questions_container">
+        <div class="form-group">
+            <label for="question_1">Question ID (e.g., entry.893637260):</label>
+            <input type="text" id="question_1" placeholder="Question ID">
+            <label for="options_1">Options with Chances (e.g., test:75, test 2:25):</label>
+            <input type="text" id="options_1" placeholder="Options">
+        </div>
+    </div>
+
+    <button id="add_question">Add More Questions</button>
+    <button id="submit_button">Submit</button>
+    
+    <div class="response" id="response" style="display:none;"></div>
+</div>
+
+<script>
+    let questionCount = 1;
+
+    document.getElementById('add_question').addEventListener('click', function() {
+        questionCount++;
+        const newQuestionHTML = `
+            <div class="form-group">
+                <label for="question_${questionCount}">Question ID (e.g., entry.893637260):</label>
+                <input type="text" id="question_${questionCount}" placeholder="Question ID">
+                <label for="options_${questionCount}">Options with Chances (e.g., test:75, test 2:25):</label>
+                <input type="text" id="options_${questionCount}" placeholder="Options">
+            </div>
+        `;
+        document.getElementById('questions_container').insertAdjacentHTML('beforeend', newQuestionHTML);
+    });
+
+    document.getElementById('submit_button').addEventListener('click', async function() {
+        const formUrl = document.getElementById('form_url').value;
+        const runs = parseInt(document.getElementById('runs').value);
+        const breakTime = parseInt(document.getElementById('break_time').value);
+        
+        let dataStructure = {
+            selectable_questions: []
+        };
+
+        for (let i = 1; i <= questionCount; i++) {
+            const questionId = document.getElementById(`question_${i}`).value;
+            const optionsInput = document.getElementById(`options_${i}`).value;
+            
+            if (questionId && optionsInput) {
+                const options = optionsInput.split(',').reduce((acc, option) => {
+                    const [key, value] = option.split(':').map(str => str.trim());
+                    acc[key] = parseFloat(value);
+                    return acc;
+                }, {});
+                
+                dataStructure.selectable_questions.push({
+                    question: questionId,
+                    options: options
+                });
+            }
+        }
+
+        if (!formUrl || !dataStructure.selectable_questions.length) {
+            alert('Please fill out all required fields.');
+            return;
+        }
+
+        const requestData = {
+            form_url: formUrl,
+            data_structure: dataStructure,
+            runs: runs,
+            break_time: breakTime
+        };
+
+        try {
+            const response = await fetch('/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            });
+
+            const result = await response.json();
+            const responseElement = document.getElementById('response');
+            responseElement.style.display = 'block';
+            if (response.status === 200) {
+                responseElement.textContent = result.message;
+            } else {
+                responseElement.textContent = result.error || 'An error occurred.';
+            }
+        } catch (error) {
+            alert('Error while submitting form: ' + error.message);
+        }
+    });
+</script>
+
+</body>
+</html>
