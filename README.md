@@ -10,29 +10,25 @@ Before running the application, make sure you have the required dependencies.
 
 ```bash
 pip install -r requirements.txt
+```
 2. Running the Application
 After installing the dependencies, run the application by executing the following command:
 
-bash
-Copy
-Edit
+
 python main.py
 Once the server starts, it will open the following URL in your web browser:
 
-text
-Copy
-Edit
+```py
 http://127.0.0.1:5000
+```
 Setting Up Your Google Form
 To use this tool with your own Google Form, follow these steps:
 
 1. Get Your Google Form URL
 Go to your Google Form and click the "Send" button at the top-right. Copy the URL that looks something like this:
-
-text
-Copy
-Edit
+```bash
 https://docs.google.com/forms/d/e/1FAIpQLSecqAlWvp6HmCer9VdfPcuQ1mHaEi0HUMgQlPZz_SGlAgqCvg/formResponse
+```
 2. Extract Your Form's ID
 The part of the URL that looks like 1FAIpQLSecqAlWvp6HmCer9VdfPcuQ1mHaEi0HUMgQlPZz_SGlAgqCvg is your form ID. Replace the existing ID in the URL when you enter it into the application.
 
@@ -44,11 +40,9 @@ Press F12 (or right-click and select "Inspect") to open the Developer Tools.
 In the "Elements" tab, press Ctrl + F and search for entry. to find the form field IDs.
 Note the entry.xxxxxxx field IDs and their corresponding values (e.g., selected values or options for a dropdown).
 For example, you may find an entry like this:
-
-html
-Copy
-Edit
+```py
 <input type="radio" name="entry.123456" value="Option1" checked>
+```
 Here, entry.123456 is the form field ID, and "Option1" is the selected value.
 
 Using the Web Interface
@@ -75,9 +69,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 Contributing
 Feel free to fork the repository, create a branch, and submit pull requests with improvements, bug fixes, or new features.
-
-pgsql
-Copy
-Edit
-
+```bash
 This README includes all necessary instructions, including setup, usage, troubleshooting, and contributing. It is formatted to be clean and informative for GitHub users.
+```
