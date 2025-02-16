@@ -21,7 +21,7 @@ def index():
 @app.route('/submit', methods=['POST'])
 def submit():
     request_data = request.get_json()
-    form_url = request_data.get('form_url')
+    form_url = "https://docs.google.com/forms/d/e/"+request_data.get('form_url') + '/formResponse'
     data_structure = request_data.get('data_structure', {})
     runs = request_data.get('runs', 1)
     break_time = request_data.get('break_time', 1)
