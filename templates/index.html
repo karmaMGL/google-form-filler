@@ -4,180 +4,196 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Form Submission App</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f4;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 500px;
-        }
-        h1 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input[type="text"],
-        input[type="number"],
-        textarea {
-            width: 100%;
-            padding: 8px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        button {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        .response {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #e7f7e7;
-            border: 1px solid #d4f7d4;
-            border-radius: 4px;
-            color: #4CAF50;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="styles.css" rel="stylesheet">
 </head>
+
 <body>
-
-<div class="container">
-    <h1>Form Submission App</h1>
-    
-    <div class="form-group">
-        <label for="form_url">Form ID:</label>
-        <input type="text" id="form_url" placeholder="Enter form URL">
-    </div>
-    
-    <div class="form-group">
-        <label for="runs">Number of Runs:</label>
-        <input type="number" id="runs" value="1" min="1">
-    </div>
-    
-    <div class="form-group">
-        <label for="break_time">Break Time (seconds):</label>
-        <input type="number" id="break_time" value="1" min="1">
-    </div>
-
-    <div id="questions_container">
-        <div class="form-group">
-            <label for="question_1">Question ID (e.g., entry.893637260):</label>
-            <input type="text" id="question_1" placeholder="Question ID">
-            <label for="options_1">Options with Chances (e.g., test:75, test 2:25):</label>
-            <input type="text" id="options_1" placeholder="Options">
-        </div>
-    </div>
-
-    <button id="add_question">Add More Questions</button>
-    <button id="submit_button">Submit</button>
-    
-    <div class="response" id="response" style="display:none;"></div>
-</div>
-
-<script>
-    let questionCount = 1;
-
-    document.getElementById('add_question').addEventListener('click', function() {
-        questionCount++;
-        const newQuestionHTML = `
-            <div class="form-group">
-                <label for="question_${questionCount}">Question ID (e.g., entry.893637260):</label>
-                <input type="text" id="question_${questionCount}" placeholder="Question ID">
-                <label for="options_${questionCount}">Options with Chances (e.g., test:75, test 2:25):</label>
-                <input type="text" id="options_${questionCount}" placeholder="Options">
-            </div>
-        `;
-        document.getElementById('questions_container').insertAdjacentHTML('beforeend', newQuestionHTML);
-    });
-
-    document.getElementById('submit_button').addEventListener('click', async function() {
-        const formUrl = document.getElementById('form_url').value;
-        const runs = parseInt(document.getElementById('runs').value);
-        const breakTime = parseInt(document.getElementById('break_time').value);
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Form Submission App</h1>
         
-        let dataStructure = {
-            selectable_questions: []
-        };
-
-        for (let i = 1; i <= questionCount; i++) {
-            const questionId = document.getElementById(`question_${i}`).value;
-            const optionsInput = document.getElementById(`options_${i}`).value;
+        <form id="submissionForm">
+            <div class="mb-3">
+                <label for="form_url" class="form-label">Form ID:</label>
+                <input type="text" class="form-control" id="form_url" placeholder="Enter form URL" required>
+            </div>
             
-            if (questionId && optionsInput) {
-                const options = optionsInput.split(',').reduce((acc, option) => {
-                    const [key, value] = option.split(':').map(str => str.trim());
-                    acc[key] = parseFloat(value);
-                    return acc;
-                }, {});
-                
-                dataStructure.selectable_questions.push({
-                    question: questionId,
-                    options: options
-                });
-            }
-        }
+            <div class="row mb-3">
+                <div class="col">
+                    <label for="runs" class="form-label">Number of Runs:</label>
+                    <input type="number" class="form-control" id="runs" value="1" min="1" required>
+                </div>
+                <div class="col">
+                    <label for="break_time" class="form-label">Break Time (seconds):</label>
+                    <input type="number" class="form-control" id="break_time" value="1" min="1" required>
+                </div>
+            </div>
 
-        if (!formUrl || !dataStructure.selectable_questions.length) {
-            alert('Please fill out all required fields.');
-            return;
-        }
+            <div id="questions_container">
+                <!-- Questions will be dynamically added here -->
+            </div>
 
-        const requestData = {
-            form_url: formUrl,
-            data_structure: dataStructure,
-            runs: runs,
-            break_time: breakTime
-        };
+            <button type="button" id="add_question" class="btn btn-secondary mt-3">Add More Questions</button>
+            <button type="submit" id="submit_button" class="btn btn-primary mt-3">Submit</button>
+        </form>
+        
+        <div id="response" class="alert mt-4" style="display:none;"></div>
+    </div>
 
-        try {
-            const response = await fetch('/submit', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            const result = await response.json();
-            const responseElement = document.getElementById('response');
-            responseElement.style.display = 'block';
-            if (response.status === 200) {
-                responseElement.textContent = result.message;
-            } else {
-                responseElement.textContent = result.error || 'An error occurred.';
-            }
-        } catch (error) {
-            alert('Error while submitting form: ' + error.message);
-        }
-    });
-</script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
 </body>
+<script>
+    let questionCount = 0
+
+function addQuestion() {
+  questionCount++
+  const newQuestionHTML = `
+        <div class="question-group" id="question_group_${questionCount}">
+            <h4>Question ${questionCount}</h4>
+            <div class="mb-3">
+                <label for="question_${questionCount}" class="form-label">Question ID (e.g., entry.893637260):</label>
+                <input type="text" class="form-control" id="question_${questionCount}" placeholder="Question ID" required>
+            </div>
+            <div class="mb-3">
+                <label for="options_${questionCount}" class="form-label">Options with Chances (e.g., test:75; test 2:25):</label>
+                <input type="text" class="form-control" id="options_${questionCount}" placeholder="Options" required>
+            </div>
+            <div class="error-message" id="error_${questionCount}"></div>
+            <button type="button" class="btn btn-danger btn-sm mt-2" onclick="removeQuestion(${questionCount})">Remove Question</button>
+        </div>
+    `
+  document.getElementById("questions_container").insertAdjacentHTML("beforeend", newQuestionHTML)
+}
+
+function removeQuestion(id) {
+  document.getElementById(`question_group_${id}`).remove()
+}
+
+document.getElementById("add_question").addEventListener("click", addQuestion)
+
+document.getElementById("submissionForm").addEventListener("submit", async (e) => {
+  e.preventDefault()
+
+  const formUrl = document.getElementById("form_url").value
+  const runs = Number.parseInt(document.getElementById("runs").value)
+  const breakTime = Number.parseInt(document.getElementById("break_time").value)
+
+  const dataStructure = {
+    selectable_questions: [],
+  }
+
+  let valid = true
+
+  document.querySelectorAll(".question-group").forEach((group, index) => {
+    const questionId = group.querySelector('input[id^="question_"]').value
+    const optionsInput = group.querySelector('input[id^="options_"]').value
+    const errorElement = group.querySelector(".error-message")
+    errorElement.textContent = "" // Reset error message
+
+    if (questionId && optionsInput) {
+      const options = {}
+      let totalPercentage = 0
+
+      optionsInput.split(";").forEach((option) => {
+        const [key, value] = option.split(":").map((str) => str.trim())
+        const percentage = Number.parseFloat(value)
+        if (!isNaN(percentage)) {
+          options[key] = percentage
+          totalPercentage += percentage
+        }
+      })
+
+      if (Math.abs(totalPercentage - 100) > 0.01) {
+        // Allow for small floating point errors
+        errorElement.textContent = "Options must sum to 100%."
+        valid = false
+      } else {
+        dataStructure.selectable_questions.push({
+          question: questionId,
+          options: options,
+        })
+      }
+    } else {
+      errorElement.textContent = "Please fill out all fields for this question."
+      valid = false
+    }
+  })
+
+  if (!valid) {
+    return // Stop submission if there are validation errors
+  }
+
+  const requestData = {
+    form_url: formUrl,
+    data_structure: dataStructure,
+    runs: runs,
+    break_time: breakTime,
+  }
+
+  try {
+    const response = await fetch("/submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestData),
+    })
+
+    const result = await response.json()
+    const responseElement = document.getElementById("response")
+    responseElement.style.display = "block"
+    if (response.ok) {
+      responseElement.textContent = result.message
+      responseElement.classList.add("alert-success")
+      responseElement.classList.remove("alert-danger")
+    } else {
+      responseElement.textContent = result.error || "An error occurred."
+      responseElement.classList.add("alert-danger")
+      responseElement.classList.remove("alert-success")
+    }
+  } catch (error) {
+    const responseElement = document.getElementById("response")
+    responseElement.style.display = "block"
+    responseElement.textContent = "Error while submitting form: " + error.message
+    responseElement.classList.add("alert-danger")
+    responseElement.classList.remove("alert-success")
+  }
+})
+
+// Add the first question by default
+addQuestion()
+
+
+</script>
+<style>
+    body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+h1 {
+    color: #007bff;
+}
+
+.question-group {
+    background-color: #f1f3f5;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.error-message {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+</style>
 </html>
