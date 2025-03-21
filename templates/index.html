@@ -3,197 +3,1041 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Form Submission App</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="styles.css" rel="stylesheet">
+    <title>Google Form Automator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding-bottom: 50px;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .question-container {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+        .results {
+            margin-top: 20px;
+            display: none;
+        }
+        .entry-id {
+            font-family: monospace;
+            color: #0d6efd;
+            font-weight: bold;
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .question-title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .question-id {
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .option-slider {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .option-slider label {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .option-slider input {
+            flex: 2;
+        }
+        .option-slider .value {
+            flex: 0 0 50px;
+            text-align: right;
+        }
+        .checkbox-option {
+            margin-bottom: 10px;
+        }
+        .checkbox-option .form-check-label {
+            font-weight: normal;
+        }
+        .type-badge {
+            font-size: 0.75rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+        .radio-badge {
+            background-color: #28a745;
+            color: white;
+        }
+        .checkbox-badge {
+            background-color: #6f42c1;
+            color: white;
+        }
+        .text-badge {
+            background-color: #17a2b8;
+            color: white;
+        }
+        .total-display {
+            display: inline-block;
+            margin-top: 5px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .total-valid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .total-invalid {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
 </head>
-
 <body>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">Form Submission App</h1>
+    <div class="container mt-4">
+        <h1>Google Form Automator</h1>
+        <p class="text-muted">Simple tool to automate form submissions</p>
         
-        <form id="submissionForm">
-            <div class="mb-3">
-                <label for="form_url" class="form-label">Form ID:</label>
-                <input type="text" class="form-control" id="form_url" placeholder="Enter form URL" required>
+        <div class="card mb-4">
+            <div class="card-header">
+                Step 1: Enter Google Form URL
+            </div>
+            <div class="card-body">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="formUrlInput" placeholder="https://docs.google.com/forms/d/e/...">
+                    <button class="btn btn-primary" id="parseButton">Parse Form</button>
+                </div>
+                <div class="d-flex justify-content-center mt-3">
+                    <div class="spinner-border text-primary loading" id="parseLoading" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="formConfig" style="display: none;">
+            <div class="card mb-4">
+                <div class="card-header">
+                    Step 2: Configure Submissions
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="runsInput" class="form-label">Number of submissions:</label>
+                                <input type="number" class="form-control" id="runsInput" min="1" value="10">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="breakTimeInput" class="form-label">Break time (seconds):</label>
+                                <input type="number" class="form-control" id="breakTimeInput" min="0" step="0.5" value="1">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-2">
+                        <label class="form-label">Form Details:</label>
+                        <div class="d-flex flex-column">
+                            <div><strong>Form ID:</strong> <span id="formIdDisplay" class="entry-id"></span></div>
+                            <div><strong>Action URL:</strong> <span id="actionUrlDisplay" class="text-break"></span></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div class="row mb-3">
-                <div class="col">
-                    <label for="runs" class="form-label">Number of Runs:</label>
-                    <input type="number" class="form-control" id="runs" value="1" min="1" required>
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Step 3: Questions and Values</span>
+                    <button class="btn btn-sm btn-outline-primary" id="addFieldBtn">Add Field</button>
                 </div>
-                <div class="col">
-                    <label for="break_time" class="form-label">Break Time (seconds):</label>
-                    <input type="number" class="form-control" id="break_time" value="1" min="1" required>
+                <div class="card-body">
+                    <!-- Radio Questions -->
+                    <div id="radioQuestionsContainer">
+                        <h5>Multiple Choice Questions</h5>
+                        <div id="noRadioQuestionsMsg" class="alert alert-info">No multiple choice questions found.</div>
+                        <!-- Questions will be added here -->
+                    </div>
+                    
+                    <!-- Checkbox Questions -->
+                    <div id="checkboxQuestionsContainer" class="mt-4">
+                        <h5>Checkbox Questions</h5>
+                        <div id="noCheckboxQuestionsMsg" class="alert alert-info">No checkbox questions found.</div>
+                        <!-- Questions will be added here -->
+                    </div>
+                    
+                    <!-- Text Questions -->
+                    <div id="textQuestionsContainer" class="mt-4">
+                        <h5>Text Field Questions</h5>
+                        <div id="noTextQuestionsMsg" class="alert alert-info">No text field questions found.</div>
+                        <!-- Questions will be added here -->
+                    </div>
                 </div>
             </div>
-
-            <div id="questions_container">
-                <!-- Questions will be dynamically added here -->
+            
+            <div class="d-grid">
+                <button class="btn btn-success btn-lg" id="submitButton">Start Submissions</button>
             </div>
-
-            <button type="button" id="add_question" class="btn btn-secondary mt-3">Add More Questions</button>
-            <button type="submit" id="submit_button" class="btn btn-primary mt-3">Submit</button>
-        </form>
-        
-        <div id="response" class="alert mt-4" style="display:none;"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
-</body>
-<script>
-    let questionCount = 0
-
-function addQuestion() {
-  questionCount++
-  const newQuestionHTML = `
-        <div class="question-group" id="question_group_${questionCount}">
-            <h4>Question ${questionCount}</h4>
-            <div class="mb-3">
-                <label for="question_${questionCount}" class="form-label">Question ID (e.g., entry.893637260):</label>
-                <input type="text" class="form-control" id="question_${questionCount}" placeholder="Question ID" required>
+            
+            <div class="d-flex justify-content-center mt-3">
+                <div class="spinner-border text-success loading" id="submitLoading" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
-            <div class="mb-3">
-                <label for="options_${questionCount}" class="form-label">Options with Chances (e.g., test:75; test 2:25):</label>
-                <input type="text" class="form-control" id="options_${questionCount}" placeholder="Options" required>
+            
+            <div class="card results mt-4" id="resultsCard">
+                <div class="card-header">
+                    Results
+                </div>
+                <div class="card-body" id="resultsContainer">
+                    <!-- Results will be added here dynamically -->
+                </div>
             </div>
-            <div class="error-message" id="error_${questionCount}"></div>
-            <button type="button" class="btn btn-danger btn-sm mt-2" onclick="removeQuestion(${questionCount})">Remove Question</button>
         </div>
-    `
-  document.getElementById("questions_container").insertAdjacentHTML("beforeend", newQuestionHTML)
-}
-
-function removeQuestion(id) {
-  document.getElementById(`question_group_${id}`).remove()
-}
-
-document.getElementById("add_question").addEventListener("click", addQuestion)
-
-document.getElementById("submissionForm").addEventListener("submit", async (e) => {
-  e.preventDefault()
-
-  const formUrl = document.getElementById("form_url").value
-  const runs = Number.parseInt(document.getElementById("runs").value)
-  const breakTime = Number.parseInt(document.getElementById("break_time").value)
-
-  const dataStructure = {
-    selectable_questions: [],
-  }
-
-  let valid = true
-
-  document.querySelectorAll(".question-group").forEach((group, index) => {
-    const questionId = group.querySelector('input[id^="question_"]').value
-    const optionsInput = group.querySelector('input[id^="options_"]').value
-    const errorElement = group.querySelector(".error-message")
-    errorElement.textContent = "" // Reset error message
-
-    if (questionId && optionsInput) {
-      const options = {}
-      let totalPercentage = 0
-
-      optionsInput.split(";").forEach((option) => {
-        const [key, value] = option.split(":").map((str) => str.trim())
-        const percentage = Number.parseFloat(value)
-        if (!isNaN(percentage)) {
-          options[key] = percentage
-          totalPercentage += percentage
+    </div>
+    
+    <!-- Field Modal Template -->
+    <div class="modal fade" id="fieldModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Field</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="fieldName" class="form-label">Field Name:</label>
+                        <input type="text" class="form-control" id="fieldName" placeholder="Question text">
+                    </div>
+                    <div class="mb-3">
+                        <label for="fieldId" class="form-label">Field ID:</label>
+                        <input type="text" class="form-control" id="fieldId" placeholder="entry.123456789">
+                        <div class="form-text">Must be in format: entry.XXXXXXXX</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fieldType" class="form-label">Field Type:</label>
+                        <select class="form-select" id="fieldType">
+                            <option value="text">Text Field</option>
+                            <option value="radio">Multiple Choice (Radio)</option>
+                            <option value="checkbox">Checkboxes</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveFieldBtn">Add Field</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let formData = null;
+        let fieldModal = null;
+        
+        // DOM elements
+        const formUrlInput = document.getElementById('formUrlInput');
+        const parseButton = document.getElementById('parseButton');
+        const parseLoading = document.getElementById('parseLoading');
+        const formConfig = document.getElementById('formConfig');
+        const formIdDisplay = document.getElementById('formIdDisplay');
+        const actionUrlDisplay = document.getElementById('actionUrlDisplay');
+        const radioQuestionsContainer = document.getElementById('radioQuestionsContainer');
+        const checkboxQuestionsContainer = document.getElementById('checkboxQuestionsContainer');
+        const textQuestionsContainer = document.getElementById('textQuestionsContainer');
+        const noRadioQuestionsMsg = document.getElementById('noRadioQuestionsMsg');
+        const noCheckboxQuestionsMsg = document.getElementById('noCheckboxQuestionsMsg');
+        const noTextQuestionsMsg = document.getElementById('noTextQuestionsMsg');
+        const addFieldBtn = document.getElementById('addFieldBtn');
+        const submitButton = document.getElementById('submitButton');
+        const submitLoading = document.getElementById('submitLoading');
+        const resultsCard = document.getElementById('resultsCard');
+        const resultsContainer = document.getElementById('resultsContainer');
+        
+        // Initialize the modal
+        document.addEventListener('DOMContentLoaded', function() {
+            fieldModal = new bootstrap.Modal(document.getElementById('fieldModal'));
+            
+            // Add Field button event
+            addFieldBtn.addEventListener('click', showAddFieldModal);
+            
+            // Save Field button event
+            document.getElementById('saveFieldBtn').addEventListener('click', function() {
+                const fieldName = document.getElementById('fieldName').value.trim();
+                const fieldId = document.getElementById('fieldId').value.trim();
+                const fieldType = document.getElementById('fieldType').value;
+                
+                if (!fieldName || !fieldId) {
+                    alert('Please enter both field name and ID');
+                    return;
+                }
+                
+                if (!fieldId.startsWith('entry.')) {
+                    alert('Field ID must be in format: entry.XXXXXXXX');
+                    return;
+                }
+                
+                // Add the field based on type
+                if (fieldType === 'text') {
+                    addTextField({
+                        text: fieldName,
+                        question: fieldId,
+                        options: {},
+                        type: 'text'
+                    });
+                    noTextQuestionsMsg.style.display = 'none';
+                } else if (fieldType === 'radio') {
+                    addRadioQuestion({
+                        text: fieldName,
+                        question: fieldId,
+                        options: {'Option 1': 50, 'Option 2': 50},
+                        type: 'radio'
+                    });
+                    noRadioQuestionsMsg.style.display = 'none';
+                } else if (fieldType === 'checkbox') {
+                    addCheckboxQuestion({
+                        text: fieldName,
+                        question: fieldId,
+                        options: {'Option 1': 5, 'Option 2': 5},
+                        type: 'checkbox'
+                    });
+                    noCheckboxQuestionsMsg.style.display = 'none';
+                }
+                
+                // Close the modal
+                fieldModal.hide();
+                
+                // Reset form
+                document.getElementById('fieldName').value = '';
+                document.getElementById('fieldId').value = '';
+            });
+        });
+        
+        // Parse form button click
+        parseButton.addEventListener('click', async function() {
+            const formUrl = formUrlInput.value.trim();
+            if (!formUrl) {
+                alert('Please enter a Google Form URL');
+                return;
+            }
+            
+            // Show loading
+            parseLoading.style.display = 'block';
+            parseButton.disabled = true;
+            
+            try {
+                const response = await fetch('/parse-form', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ form_url: formUrl })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert(`Error: ${data.error}`);
+                    return;
+                }
+                
+                // Store form data
+                formData = data;
+                
+                // Update form details
+                formIdDisplay.textContent = data.form_id;
+                actionUrlDisplay.textContent = data.action_url;
+                
+                // Clear question containers
+                radioQuestionsContainer.querySelectorAll('.question-container').forEach(el => el.remove());
+                checkboxQuestionsContainer.querySelectorAll('.question-container').forEach(el => el.remove());
+                textQuestionsContainer.querySelectorAll('.question-container').forEach(el => el.remove());
+                
+                // Show the form config section
+                formConfig.style.display = 'block';
+                
+                // Add all questions
+                const radioQuestions = data.data_structure.selectable_questions || [];
+                const checkboxQuestions = data.data_structure.checkbox_questions || [];
+                const textQuestions = data.data_structure.text_field_questions || [];
+                
+                // Show/hide "no questions" messages
+                noRadioQuestionsMsg.style.display = radioQuestions.length > 0 ? 'none' : 'block';
+                noCheckboxQuestionsMsg.style.display = checkboxQuestions.length > 0 ? 'none' : 'block';
+                noTextQuestionsMsg.style.display = textQuestions.length > 0 ? 'none' : 'block';
+                
+                // Add radio questions
+                radioQuestions.forEach(q => addRadioQuestion(q));
+                
+                // Add checkbox questions
+                checkboxQuestions.forEach(q => addCheckboxQuestion(q));
+                
+                // Add text field questions
+                textQuestions.forEach(q => addTextField(q));
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error(error);
+            } finally {
+                parseLoading.style.display = 'none';
+                parseButton.disabled = false;
+            }
+        });
+        
+        // Function to show add field modal
+        function showAddFieldModal() {
+            // Reset the form
+            document.getElementById('fieldName').value = '';
+            document.getElementById('fieldId').value = '';
+            document.getElementById('fieldType').value = 'text';
+            
+            // Show the modal
+            fieldModal.show();
         }
-      })
-
-      if (Math.abs(totalPercentage - 100) > 0.01) {
-        // Allow for small floating point errors
-        errorElement.textContent = "Options must sum to 100%."
-        valid = false
-      } else {
-        dataStructure.selectable_questions.push({
-          question: questionId,
-          options: options,
-        })
-      }
-    } else {
-      errorElement.textContent = "Please fill out all fields for this question."
-      valid = false
-    }
-  })
-
-  if (!valid) {
-    return // Stop submission if there are validation errors
-  }
-
-  const requestData = {
-    form_url: formUrl,
-    data_structure: dataStructure,
-    runs: runs,
-    break_time: breakTime,
-  }
-
-  try {
-    const response = await fetch("/submit", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(requestData),
-    })
-
-    const result = await response.json()
-    const responseElement = document.getElementById("response")
-    responseElement.style.display = "block"
-    if (response.ok) {
-      responseElement.textContent = result.message
-      responseElement.classList.add("alert-success")
-      responseElement.classList.remove("alert-danger")
-    } else {
-      responseElement.textContent = result.error || "An error occurred."
-      responseElement.classList.add("alert-danger")
-      responseElement.classList.remove("alert-success")
-    }
-  } catch (error) {
-    const responseElement = document.getElementById("response")
-    responseElement.style.display = "block"
-    responseElement.textContent = "Error while submitting form: " + error.message
-    responseElement.classList.add("alert-danger")
-    responseElement.classList.remove("alert-success")
-  }
-})
-
-// Add the first question by default
-addQuestion()
-
-
-</script>
-<style>
-    body {
-    background-color: #f8f9fa;
-}
-
-.container {
-    background-color: #ffffff;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    padding: 30px;
-}
-
-h1 {
-    color: #007bff;
-}
-
-.question-group {
-    background-color: #f1f3f5;
-    border-radius: 5px;
-    padding: 15px;
-    margin-bottom: 15px;
-}
-
-.error-message {
-    color: #dc3545;
-    font-size: 0.9em;
-    margin-top: 5px;
-}
-
-</style>
+        
+        // Function to add a radio question
+        function addRadioQuestion(question) {
+            const container = document.createElement('div');
+            container.className = 'question-container';
+            container.dataset.type = 'radio';
+            container.dataset.id = question.question;
+            
+            // Question header
+            const header = document.createElement('div');
+            header.className = 'question-header';
+            
+            // Title and ID
+            const titleArea = document.createElement('div');
+            
+            const title = document.createElement('div');
+            title.className = 'question-title';
+            title.textContent = question.text;
+            title.innerHTML += `<span class="type-badge radio-badge">radio</span>`;
+            titleArea.appendChild(title);
+            
+            const id = document.createElement('div');
+            id.className = 'question-id';
+            id.textContent = question.question;
+            titleArea.appendChild(id);
+            
+            header.appendChild(titleArea);
+            
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn btn-sm btn-outline-danger';
+            removeBtn.textContent = 'Remove';
+            removeBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to remove this field?')) {
+                    container.remove();
+                    
+                    // Show no questions message if no questions left
+                    if (radioQuestionsContainer.querySelectorAll('.question-container').length === 0) {
+                        noRadioQuestionsMsg.style.display = 'block';
+                    }
+                }
+            });
+            header.appendChild(removeBtn);
+            
+            container.appendChild(header);
+            
+            // Create sliders for options
+            const slidersContainer = document.createElement('div');
+            slidersContainer.className = 'sliders-container mt-3';
+            
+            // Add total display
+            const totalDisplay = document.createElement('div');
+            totalDisplay.className = 'total-display total-valid mb-2';
+            totalDisplay.textContent = 'Total: 100%';
+            slidersContainer.appendChild(totalDisplay);
+            
+            // Add option sliders
+            if (question.options && Object.keys(question.options).length > 0) {
+                // Calculate initial percentages to ensure they add up to 100%
+                const options = Object.keys(question.options);
+                const basePercentage = Math.floor(100 / options.length);
+                const remainder = 100 - (basePercentage * options.length);
+                
+                options.forEach((option, index) => {
+                    // Distribute remainder to the first options
+                    let percentage = basePercentage;
+                    if (index < remainder) {
+                        percentage += 1;
+                    }
+                    
+                    addRadioSlider(slidersContainer, option, percentage);
+                });
+            } else {
+                // Add default options
+                addRadioSlider(slidersContainer, 'Option 1', 50);
+                addRadioSlider(slidersContainer, 'Option 2', 50);
+            }
+            
+            container.appendChild(slidersContainer);
+            
+            // Add option button
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn btn-sm btn-outline-secondary mt-2';
+            addBtn.textContent = 'Add Option';
+            addBtn.addEventListener('click', function() {
+                const sliders = slidersContainer.querySelectorAll('.option-slider');
+                const newPercentage = Math.floor(100 / (sliders.length + 1));
+                
+                // Adjust existing sliders
+                let remainingPercentage = 100 - newPercentage;
+                sliders.forEach((slider, index) => {
+                    const input = slider.querySelector('input[type="range"]');
+                    const value = slider.querySelector('.value');
+                    
+                    const adjustedPercentage = Math.floor(remainingPercentage / sliders.length);
+                    input.value = adjustedPercentage;
+                    value.textContent = adjustedPercentage + '%';
+                });
+                
+                // Add new slider
+                addRadioSlider(slidersContainer, `Option ${sliders.length + 1}`, newPercentage);
+                
+                // Update total
+                updateTotalDisplay(slidersContainer);
+            });
+            container.appendChild(addBtn);
+            
+            radioQuestionsContainer.appendChild(container);
+        }
+        
+        // Function to add a radio slider
+        function addRadioSlider(container, optionText, percentage) {
+            const sliderDiv = document.createElement('div');
+            sliderDiv.className = 'option-slider';
+            
+            const label = document.createElement('label');
+            label.textContent = optionText;
+            sliderDiv.appendChild(label);
+            
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.className = 'form-range';
+            slider.min = 0;
+            slider.max = 100;
+            slider.value = percentage;
+            slider.addEventListener('input', function() {
+                // Update this slider's display value
+                value.textContent = slider.value + '%';
+                
+                // Adjust other sliders to maintain 100% total
+                autoBalanceSliders(container, slider);
+            });
+            sliderDiv.appendChild(slider);
+            
+            const value = document.createElement('span');
+            value.className = 'value';
+            value.textContent = percentage + '%';
+            sliderDiv.appendChild(value);
+            
+            // Remove button 
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-outline-danger ms-2';
+            removeBtn.textContent = '✕';
+            removeBtn.addEventListener('click', function() {
+                if (container.querySelectorAll('.option-slider').length > 1) {
+                    sliderDiv.remove();
+                    autoBalanceSliders(container, null);
+                } else {
+                    alert('You must have at least one option');
+                }
+            });
+            sliderDiv.appendChild(removeBtn);
+            
+            container.appendChild(sliderDiv);
+            
+            return sliderDiv;
+        }
+        
+        // Function to auto-balance sliders to 100%
+        function autoBalanceSliders(container, changedSlider) {
+            const sliders = container.querySelectorAll('input[type="range"]');
+            if (sliders.length === 0) return;
+            
+            // Calculate current total
+            let total = 0;
+            sliders.forEach(slider => {
+                total += parseInt(slider.value);
+            });
+            
+            // If total is not 100%, adjust other sliders
+            if (total !== 100) {
+                const diff = 100 - total;
+                const otherSliders = Array.from(sliders).filter(slider => slider !== changedSlider);
+                
+                if (otherSliders.length > 0) {
+                    // Calculate how much to adjust each slider
+                    const adjustPerSlider = Math.floor(diff / otherSliders.length);
+                    const remainder = diff - (adjustPerSlider * otherSliders.length);
+                    
+                    // Adjust each slider
+                    otherSliders.forEach((slider, index) => {
+                        let adjustedValue = parseInt(slider.value) + adjustPerSlider;
+                        
+                        // Add remainder to the first slider
+                        if (index === 0) {
+                            adjustedValue += remainder;
+                        }
+                        
+                        // Ensure value is between 0 and 100
+                        adjustedValue = Math.max(0, Math.min(100, adjustedValue));
+                        
+                        // Update slider value and display
+                        slider.value = adjustedValue;
+                        slider.nextElementSibling.textContent = adjustedValue + '%';
+                    });
+                }
+            }
+            
+            // Update total display
+            updateTotalDisplay(container);
+        }
+        
+        // Function to update total percentage display
+        function updateTotalDisplay(container) {
+            const sliders = container.querySelectorAll('input[type="range"]');
+            let total = 0;
+            
+            sliders.forEach(slider => {
+                total += parseInt(slider.value);
+            });
+            
+            const totalDisplay = container.querySelector('.total-display');
+            totalDisplay.textContent = `Total: ${total}%`;
+            
+            if (total === 100) {
+                totalDisplay.className = 'total-display total-valid mb-2';
+            } else {
+                totalDisplay.className = 'total-display total-invalid mb-2';
+            }
+        }
+        
+        // Function to add a checkbox question
+        function addCheckboxQuestion(question) {
+            const container = document.createElement('div');
+            container.className = 'question-container';
+            container.dataset.type = 'checkbox';
+            container.dataset.id = question.question;
+            
+            // Question header
+            const header = document.createElement('div');
+            header.className = 'question-header';
+            
+            // Title and ID
+            const titleArea = document.createElement('div');
+            
+            const title = document.createElement('div');
+            title.className = 'question-title';
+            title.textContent = question.text;
+            title.innerHTML += `<span class="type-badge checkbox-badge">checkbox</span>`;
+            titleArea.appendChild(title);
+            
+            const id = document.createElement('div');
+            id.className = 'question-id';
+            id.textContent = question.question;
+            titleArea.appendChild(id);
+            
+            header.appendChild(titleArea);
+            
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn btn-sm btn-outline-danger';
+            removeBtn.textContent = 'Remove';
+            removeBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to remove this field?')) {
+                    container.remove();
+                    
+                    // Show no questions message if no questions left
+                    if (checkboxQuestionsContainer.querySelectorAll('.question-container').length === 0) {
+                        noCheckboxQuestionsMsg.style.display = 'block';
+                    }
+                }
+            });
+            header.appendChild(removeBtn);
+            
+            container.appendChild(header);
+            
+            // Add note about how checkbox weights work
+            const note = document.createElement('div');
+            note.className = 'alert alert-info py-2 mt-2';
+            note.innerHTML = '<small>For checkboxes, higher values (1-10) increase the probability of that option being selected.</small>';
+            container.appendChild(note);
+            
+            // Options container
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'options-container mt-3';
+            
+            // Add checkbox options
+            if (question.options && Object.keys(question.options).length > 0) {
+                Object.entries(question.options).forEach(([option, weight]) => {
+                    addCheckboxOption(optionsContainer, option, weight);
+                });
+            } else {
+                // Add default options
+                addCheckboxOption(optionsContainer, 'Option 1', 5);
+                addCheckboxOption(optionsContainer, 'Option 2', 5);
+            }
+            
+            container.appendChild(optionsContainer);
+            
+            // Add option button
+            const addBtn = document.createElement('button');
+            addBtn.className = 'btn btn-sm btn-outline-secondary mt-2';
+            addBtn.textContent = 'Add Option';
+            addBtn.addEventListener('click', function() {
+                const options = optionsContainer.querySelectorAll('.checkbox-option');
+                addCheckboxOption(optionsContainer, `Option ${options.length + 1}`, 5);
+            });
+            container.appendChild(addBtn);
+            
+            checkboxQuestionsContainer.appendChild(container);
+        }
+        
+        // Function to add a checkbox option
+        function addCheckboxOption(container, optionText, weight) {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'checkbox-option d-flex align-items-center';
+            
+            // Option text input
+            const textInput = document.createElement('input');
+            textInput.type = 'text';
+            textInput.className = 'form-control';
+            textInput.value = optionText;
+            textInput.style.flex = '1';
+            optionDiv.appendChild(textInput);
+            
+            // Weight slider
+            const weightContainer = document.createElement('div');
+            weightContainer.className = 'd-flex align-items-center ms-2';
+            weightContainer.style.width = '150px';
+            
+            const weightInput = document.createElement('input');
+            weightInput.type = 'range';
+            weightInput.className = 'form-range me-1';
+            weightInput.min = 0;
+            weightInput.max = 10;
+            weightInput.value = weight;
+            weightInput.style.width = '100px';
+            
+            const weightValue = document.createElement('span');
+            weightValue.className = 'weight-value ms-1';
+            weightValue.style.width = '20px';
+            weightValue.textContent = weight;
+            
+            weightInput.addEventListener('input', function() {
+                weightValue.textContent = this.value;
+            });
+            
+            weightContainer.appendChild(weightInput);
+            weightContainer.appendChild(weightValue);
+            optionDiv.appendChild(weightContainer);
+            
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-outline-danger ms-2';
+            removeBtn.textContent = '✕';
+            removeBtn.addEventListener('click', function() {
+                if (container.querySelectorAll('.checkbox-option').length > 1) {
+                    optionDiv.remove();
+                } else {
+                    alert('You must have at least one option');
+                }
+            });
+            optionDiv.appendChild(removeBtn);
+            
+            container.appendChild(optionDiv);
+        }
+        
+        // Function to add a text field question
+        function addTextField(question) {
+            const container = document.createElement('div');
+            container.className = 'question-container';
+            container.dataset.type = 'text';
+            container.dataset.id = question.question;
+            
+            // Question header
+            const header = document.createElement('div');
+            header.className = 'question-header';
+            
+            // Title and ID
+            const titleArea = document.createElement('div');
+            
+            const title = document.createElement('div');
+            title.className = 'question-title';
+            title.textContent = question.text;
+            title.innerHTML += `<span class="type-badge text-badge">text</span>`;
+            titleArea.appendChild(title);
+            
+            const id = document.createElement('div');
+            id.className = 'question-id';
+            id.textContent = question.question;
+            titleArea.appendChild(id);
+            
+            header.appendChild(titleArea);
+            
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn btn-sm btn-outline-danger';
+            removeBtn.textContent = 'Remove';
+            removeBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to remove this field?')) {
+                    container.remove();
+                    
+                    // Show no questions message if no questions left
+                    if (textQuestionsContainer.querySelectorAll('.question-container').length === 0) {
+                        noTextQuestionsMsg.style.display = 'block';
+                    }
+                }
+            });
+            header.appendChild(removeBtn);
+            
+            container.appendChild(header);
+            
+            // Text area for values
+            const textDiv = document.createElement('div');
+            textDiv.className = 'mb-3 mt-3';
+            
+            const label = document.createElement('label');
+            label.textContent = 'Enter possible text values (one per line):';
+            label.className = 'form-label';
+            textDiv.appendChild(label);
+            
+            const textarea = document.createElement('textarea');
+            textarea.className = 'form-control';
+            textarea.rows = 3;
+            
+            // Add placeholder text or preset values
+            if (question.options && Object.keys(question.options).length > 0) {
+                textarea.value = Object.keys(question.options).join('\n');
+            } else {
+                textarea.placeholder = 'Value 1\nValue 2\nValue 3';
+            }
+            
+            textDiv.appendChild(textarea);
+            container.appendChild(textDiv);
+            
+            textQuestionsContainer.appendChild(container);
+        }
+        
+        // Submit button click
+        submitButton.addEventListener('click', async function() {
+            if (!formData) {
+                alert('Please parse a form first');
+                return;
+            }
+            
+            const runs = parseInt(document.getElementById('runsInput').value) || 10;
+            const breakTime = parseFloat(document.getElementById('breakTimeInput').value) || 1;
+            
+            // Validate slider totals
+            const radioContainers = radioQuestionsContainer.querySelectorAll('.sliders-container');
+            let allValid = true;
+            
+            radioContainers.forEach(container => {
+                const totalDisplay = container.querySelector('.total-display');
+                if (totalDisplay.classList.contains('total-invalid')) {
+                    allValid = false;
+                    // Scroll to the invalid container
+                    container.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+            
+            if (!allValid) {
+                alert('Please ensure all radio question percentages add up to 100%');
+                return;
+            }
+            
+            // Collect all question data
+            const dataStructure = {
+                selectable_questions: [],
+                checkbox_questions: [],
+                text_field_questions: []
+            };
+            
+            // Collect radio questions
+            radioQuestionsContainer.querySelectorAll('.question-container').forEach(container => {
+                const questionId = container.dataset.id;
+                const questionText = container.querySelector('.question-title').textContent.replace(/radio|checkbox|text/i, '').trim();
+                const options = {};
+                
+                container.querySelectorAll('.option-slider').forEach(slider => {
+                    const optionText = slider.querySelector('label').textContent;
+                    const percentage = parseInt(slider.querySelector('input[type="range"]').value);
+                    if (percentage > 0) {
+                        options[optionText] = percentage;
+                    }
+                });
+                
+                if (Object.keys(options).length > 0) {
+                    dataStructure.selectable_questions.push({
+                        question: questionId,
+                        text: questionText,
+                        options: options,
+                        type: 'radio'
+                    });
+                }
+            });
+            
+            // Collect checkbox questions
+            checkboxQuestionsContainer.querySelectorAll('.question-container').forEach(container => {
+                const questionId = container.dataset.id;
+                const questionText = container.querySelector('.question-title').textContent.replace(/radio|checkbox|text/i, '').trim();
+                const options = {};
+                
+                container.querySelectorAll('.checkbox-option').forEach(option => {
+                    const optionText = option.querySelector('input[type="text"]').value;
+                    const weight = parseInt(option.querySelector('input[type="range"]').value);
+                    if (optionText && weight > 0) {
+                        options[optionText] = weight;
+                    }
+                });
+                
+                if (Object.keys(options).length > 0) {
+                    dataStructure.checkbox_questions.push({
+                        question: questionId,
+                        text: questionText,
+                        options: options,
+                        type: 'checkbox'
+                    });
+                }
+            });
+            
+            // Collect text field questions
+            textQuestionsContainer.querySelectorAll('.question-container').forEach(container => {
+                const questionId = container.dataset.id;
+                const questionText = container.querySelector('.question-title').textContent.replace(/radio|checkbox|text/i, '').trim();
+                const textarea = container.querySelector('textarea');
+                
+                if (textarea && textarea.value.trim()) {
+                    const values = textarea.value.split('\n').filter(line => line.trim());
+                    const options = {};
+                    
+                    values.forEach(value => {
+                        options[value.trim()] = Math.ceil(runs / values.length);
+                    });
+                    
+                    if (Object.keys(options).length > 0) {
+                        dataStructure.text_field_questions.push({
+                            question: questionId,
+                            text: questionText,
+                            options: options,
+                            type: 'text'
+                        });
+                    }
+                }
+            });
+            
+            // Check if we have any questions
+            const totalQuestions = dataStructure.selectable_questions.length + 
+                                 dataStructure.checkbox_questions.length + 
+                                 dataStructure.text_field_questions.length;
+            
+            if (totalQuestions === 0) {
+                alert('Please add at least one question with options');
+                return;
+            }
+            
+            // Show loading
+            submitLoading.style.display = 'block';
+            submitButton.disabled = true;
+            resultsCard.style.display = 'none';
+            
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action_url: formData.action_url,
+                        data_structure: dataStructure,
+                        runs: runs,
+                        break_time: breakTime
+                    })
+                });
+                
+                const results = await response.json();
+                
+                // Display results
+                displayResults(results);
+                
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                console.error(error);
+            } finally {
+                submitLoading.style.display = 'none';
+                submitButton.disabled = false;
+            }
+        });
+        
+        // Function to display results
+        function displayResults(results) {
+            resultsContainer.innerHTML = '';
+            
+            // Create summary
+            const summaryDiv = document.createElement('div');
+            summaryDiv.className = 'alert ' + (results.failed > 0 ? 'alert-warning' : 'alert-success');
+            summaryDiv.innerHTML = `
+                <h4>Submission Summary</h4>
+                <p>Total submissions: ${results.total}</p>
+                <p>Successful: ${results.successful}</p>
+                <p>Failed: ${results.failed}</p>
+            `;
+            resultsContainer.appendChild(summaryDiv);
+            
+            // Show details if available
+            if (results.details && results.details.length > 0) {
+                const detailsTable = document.createElement('table');
+                detailsTable.className = 'table table-striped';
+                
+                const thead = document.createElement('thead');
+                thead.innerHTML = `
+                    <tr>
+                        <th>Run</th>
+                        <th>Status</th>
+                        <th>Message</th>
+                    </tr>
+                `;
+                detailsTable.appendChild(thead);
+                
+                const tbody = document.createElement('tbody');
+                results.details.forEach(detail => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${detail.run}</td>
+                        <td>${detail.success ? '<span class="text-success">Success</span>' : '<span class="text-danger">Failed</span>'}</td>
+                        <td>${detail.message}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                detailsTable.appendChild(tbody);
+                
+                resultsContainer.appendChild(detailsTable);
+            }
+            
+            resultsCard.style.display = 'block';
+            resultsCard.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
 </html>
